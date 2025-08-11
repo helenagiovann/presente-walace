@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Surpresa — Forca (Moderno)</title>
+  <meta name="description" content="Jogo da forca moderno que revela a surpresa: SÃO PAULO" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg-1: linear-gradient(180deg,#0f1724 0%, #071032 100%);
+      --card:#071426;
+      --accent:#7c5cff;
+      --accent-2:#ff7ab6;
+      --glass: rgba(255,255,255,0.06);
+      --muted: rgba(255,255,255,0.72);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial;background:var(--bg-1);color:#eaf0ff;display:flex;align-items:center;justify-content:center;padding:28px}
+    .app{width:100%;max-width:1080px}
+    .board{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:16px;padding:22px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+    h1{margin:0;font-weight:800;letter-spacing:-0.02em;font-size:28px}
+    .subtitle{margin-top:8px;color:var(--muted)}
+    .word{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+    .letter{width:56px;height:68px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;border:2px solid rgba(255,255,255,0.03)}
+    .letter.space{width:28px;border:none;background:transparent}
+    .kbd{margin-top:20px;display:grid;grid-template-columns:repeat(9,1fr);gap:10px}
+    .key{padding:10px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));text-align:center;font-weight:700;cursor:pointer;user-select:none;transition:transform .12s ease,opacity .12s}
+    .key:active{transform:translateY(2px)}
+    .key.disabled{opacity:0.32;cursor:not-allowed}
+    .meta{display:flex;align-items:center;gap:12px;margin-top:16px}
+    .attempts{font-family:monospace;font-weight:700;background:var(--glass);padding:8px 10px;border-radius:10px}
+    .controls{margin-left:auto;display:flex;gap:8px}
+    .btn{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font-weight:700}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#071426}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:inherit}
+    .hangman{padding:18px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);display:flex;flex-direction:column;align-items:center;gap:12px}
+    .svg-wrap{width:220px;height:220px}
+    .modal-root{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:60}
+    .modal-root.visible{display:flex}
+    .modal-backdrop{position:absolute;inset:0;background:rgba(4,8,23,0.6);backdrop-filter:blur(6px)}
+    .modal-card{position:relative;z-index:10;max-width:720px;width:92%;background:linear-gradient(180deg,#0b1320, #081025);border-radius:16px;padding:26px;box-shadow:0 30px 80px rgba(0,0,0,0.6);transform:translateY(10px) scale(.98);opacity:0;transition:all .36s cubic-bezier(.2,.9,.3,1)}
+    .modal-root.visible .modal-card{transform:translateY(0) scale(1);opacity:1}
+    .modal-hero{display:flex;gap:18px;align-items:center}
+    .modal-hero .emoji{font-size:46px}
+    .modal-hero h2{margin:0;font-size:24px}
+    .modal-body{margin-top:12px;color:var(--muted)}
+    .modal-actions{display:flex;gap:12px;margin-top:18px}
+    .confetti-canvas{position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:70}
+    @media (max-width:900px){.board{grid-template-columns:1fr}.hangman{order:-1}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="board">
+      <section class="panel">
+        <h1>Jogo da Forca — Descubra o presente</h1>
+        <div class="subtitle">Adivinhe a palavra para revelar a surpresa ✨</div>
+        <div class="word" id="word"></div>
+        <div class="kbd" id="keyboard"></div>
+        <div class="meta">
+          <div class="attempts">Erros: <span id="wrongCount">0</span>/6</div>
+          <div style="flex:1"></div>
+          <div class="controls">
+            <button class="btn btn-ghost" id="hintBtn">Pista</button>
+            <button class="btn btn-ghost" id="resetBtn">Reiniciar</button>
+          </div>
+        </div>
+      </section>
+      <aside class="panel hangman">
+        <div class="svg-wrap">
+          <svg viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+            <g stroke="#eaf0ff" stroke-width="4" fill="none" stroke-linecap="round">
+              <line x1="10" y1="230" x2="190" y2="230" />
+              <line x1="40" y1="230" x2="40" y2="20" />
+              <line x1="40" y1="20" x2="120" y2="20" />
+              <line x1="120" y1="20" x2="120" y2="36" />
+              <circle cx="120" cy="60" r="16" id="head" opacity="0" />
+              <line x1="120" y1="76" x2="120" y2="130" id="body" opacity="0" />
+              <line x1="120" y1="90" x2="95" y2="110" id="larm" opacity="0" />
+              <line x1="120" y1="90" x2="145" y2="110" id="rarm" opacity="0" />
+              <line x1="120" y1="130" x2="100" y2="170" id="lleg" opacity="0" />
+              <line x1="120" y1="130" x2="140" y2="170" id="rleg" opacity="0" />
+            </g>
+          </svg>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div class="modal-root" id="modalRoot">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-hero">
+        <div class="emoji">🎉</div>
+        <div><h2>Parabéns — é oficial!</h2></div>
+      </div>
+      <div class="modal-body">Você acertou SÃO PAULO! Passagens e Airbnb estão prontos.</div>
+      <div class="modal-actions">
+        <a class="btn btn-primary" href="https://www.airbnb.com.br/rooms/1105822847840419967" target="_blank">Abrir Airbnb</a>
+        <a class="btn btn-ghost" href="passagens.pdf" target="_blank">Abrir Passagens (PDF)</a>
+        <button id="closeModal" class="btn btn-ghost">Fechar</button>
+      </div>
+    </div>
+  </div>
+  <canvas class="confetti-canvas" id="confettiCanvas"></canvas>
+  <script>
+    const SECRET = 'SÃO PAULO'; const MAX_WRONG = 6;
+    const normalize = s => s.normalize('NFD').replace(/\p{Diacritic}/gu,'').toUpperCase();
+    const normSecret = normalize(SECRET);
+    const wordEl = document.getElementById('word');
+    const keyboardEl = document.getElementById('keyboard');
+    const wrongCountEl = document.getElementById('wrongCount');
+    let guessed = new Set(); let wrong = 0;
+    const alpha = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    function buildWord(){wordEl.innerHTML='';for(const ch of SECRET){const b=document.createElement('div');b.className='letter';if(ch===' '){b.classList.add('space');}else{const n=normalize(ch);b.textContent=guessed.has(n)?ch:'';}wordEl.appendChild(b);}}
+    function buildKeyboard(){keyboardEl.innerHTML='';for(const c of alpha){const btn=document.createElement('div');btn.className='key';btn.textContent=c;btn.onclick=()=>tryGuess(c,btn);keyboardEl.appendChild(btn);}}
+    function tryGuess(letter,btn){if(btn&&btn.classList.contains('disabled'))return;if(guessed.has(letter)||wrong>=MAX_WRONG)return;if(normSecret.includes(letter)){guessed.add(letter);if(btn)btn.classList.add('disabled');updateUI();checkWin();}else{wrong++;wrongCountEl.textContent=wrong;if(btn)btn.classList.add('disabled');updateHangman();if(wrong>=MAX_WRONG)lose();}}
+    function updateUI(){buildWord();}
+    function checkWin(){const needed=new Set([...normSecret].filter(ch=>ch!==' '));if([...needed].every(c=>guessed.has(c)))win();}
+    function win(){openModal();launchConfetti();}
+    function lose(){alert('Você perdeu! Tentando novamente...');setTimeout(reset,1500);}
+    function updateHangman(){['head','body','larm','rarm','lleg','rleg'].forEach((id,i)=>{const el=document.getElementById(id);if(el)el.setAttribute('opacity',i<wrong?'1':'0');});}
+    function reset(){guessed=new Set();wrong=0;wrongCountEl.textContent='0';buildWord();buildKeyboard();updateHangman();}
+    function openModal(){document.getElementById('modalRoot').classList.add('visible');}
+    document.getElementById('closeModal').onclick=()=>document.getElementById('modalRoot').classList.remove('visible');
+    function launchConfetti(){const canvas=document.getElementById('confettiCanvas');canvas.width=innerWidth;canvas.height=innerHeight;const ctx=canvas.getContext('2d');let pieces=[];const colors=['#7c5cff','#ff7ab6','#ffd66b','#7ee7ff','#c2ffb3'];for(let i=0;i<150;i++)pieces.push({x:Math.random()*canvas.width,y:Math.random()*-canvas.height*0.5,vy:1+Math.random()*5,vx:(Math.random()-0.5)*3,w:6+Math.random()*10,c:colors[Math.floor(Math.random()*colors.length)],r:Math.random()*360,vr:Math.random()*8});let running=true;function frame(){ctx.clearRect(0,0,canvas.width,canvas.height);for(const p of pieces){p.x+=p.vx;p.y+=p.vy;p.vy+=0.06;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r*Math.PI/180);ctx.fillStyle=p.c;ctx.fillRect(-p.w/2,-p.w/2,p.w,p.w*0.6);ctx.restore();}pieces=pieces.filter(p=>p.y<canvas.height+50);if(pieces.length&&running)requestAnimationFrame(frame);else ctx.clearRect(0,0,canvas.width,canvas.height);}frame();setTimeout(()=>{running=false;},9000);}
+    document.getElementById('hintBtn').onclick=()=>alert('Dica: é um lugar :)');
+    document.getElementById('resetBtn').onclick=reset;
+    document.addEventListener('keydown',e=>{if(/^[a-zA-Z]$/.test(e.key)){const k=e.key.toUpperCase();const btn=[...keyboardEl.children].find(x=>x.textContent===k);tryGuess(k,btn);}});
+    reset();
+  </script>
+</body>
+</html>
